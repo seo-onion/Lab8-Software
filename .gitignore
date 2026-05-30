@@ -1,1 +1,23 @@
 CLAUDE.md
+
+# Entorno
+.venv/
+venv/
+.env*
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+
+# Cobertura
+.coverage
+coverage.xml
+htmlcov/
+
+# Base de datos local
+*.db
+
+# Sonar
+.scannerwork/
