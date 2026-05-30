@@ -1,0 +1,42 @@
+"""AMQP topology and broker connection settings.
+
+Names are unique per team because the course RabbitMQ server (213.199.42.57) is
+shared by all students. Credentials are read from environment variables, never
+hardcoded (Security quality gate, RNF-04).
+"""
+
+from __future__ import annotations
+
+import os
+from dataclasses import dataclass
+
+# --- AMQP topology (Exchange -> Routing key -> Queue), per Figure 1 ----------
+EXCHANGE = "recompensas_exchange_Sebastian_Hernandez_t1"
+EXCHANGE_TYPE = "direct"
+
+DINNER_QUEUE = "cenas_registradas_Sebastian_Hernandez_t1"
+DINNER_ROUTING_KEY = "cena.registrada"
+
+NOTIFICATION_QUEUE = "notificaciones_Sebastian_Hernandez_t1"
+NOTIFICATION_ROUTING_KEY = "recompensa.procesada"
+
+
+@dataclass(frozen=True)
+class BrokerSettings:
+    """RabbitMQ connection parameters loaded from the environment."""
+
+    host: str
+    port: int
+    user: str
+    password: str
+    virtual_host: str
+
+    @classmethod
+    def from_env(cls) -> "BrokerSettings":
+        return cls(
+            host=os.getenv("RABBITMQ_HOST", "213.199.42.57"),
+            port=int(os.getenv("RABBITMQ_PORT", "5672")),
+            user=os.getenv("RABBITMQ_USER", "students"),
+            password=os.getenv("RABBITMQ_PASSWORD", ""),
+            virtual_host=os.getenv("RABBITMQ_VHOST", "/"),
+        )
