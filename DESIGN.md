@@ -113,20 +113,20 @@ actor "Cliente" as Cli
 actor "Sistema de\nNotificaciones" as Notif
 
 rectangle "Sistema de Recompensas" {
-  usecase "Registrar cena" as UC1
-  usecase "Publicar evento de cena" as UC2
-  usecase "Calcular recompensa" as UC3
-  usecase "Actualizar cuenta del cliente" as UC4
-  usecase "Notificar recompensa" as UC5
+  usecase "CU-01\nRegistrar cena" as UC1
+  usecase "Publicar evento\nde cena" as UC2
+  usecase "CU-02\nCalcular recompensa\ny actualizar cuenta" as UC3
+  usecase "Validar restaurante\nafiliado" as UC4
+  usecase "CU-03\nNotificar recompensa\n(simulado)" as UC5
 }
 
 Rest --> UC1
 UC1 ..> UC2 : <<include>>
-UC2 --> UC3 : evento
+UC2 --> UC3 : evento cena.registrada
 UC3 ..> UC4 : <<include>>
-UC4 ..> UC5 : <<extend>>
+UC3 ..> UC5 : <<extend>>\n(si recompensa > 0)
 UC5 --> Notif
-UC4 --> Cli
+UC3 --> Cli
 @enduml
 ```
 
@@ -201,6 +201,7 @@ participant "RestaurantRepository\n(SQLite)" as RRepo
 participant "RewardCalculator\n(domain)" as Calc
 participant "AccountRepository\n(SQLite)" as ARepo
 participant "Exchange (RabbitMQ)" as Ex
+actor "Cliente" as Cli
 
 Q -> Cons : deliver(message)
 Cons -> UC : execute(DinnerEvent)
@@ -214,6 +215,7 @@ else restaurante válido
   UC -> Calc : calculate(amount, category)
   Calc --> UC : Reward(points, cashback)
   UC -> ARepo : add_reward(card, reward)
+  ARepo --> Cli : recompensa abonada\nen su cuenta
   alt recompensa > 0
     UC -> Ex : publish("recompensa.procesada")
   end
@@ -241,10 +243,12 @@ title CU-03 — Notificar recompensa (simulado)
 participant "Queue\nnotificaciones" as Q
 participant "Notifier" as N
 participant "Log" as Log
+actor "Cliente" as Cli
 
 Q -> N : deliver(recompensa.procesada)
 N -> N : construir mensaje\n(tarjeta enmascarada)
 N -> Log : registrar "notificación enviada"
+N --> Cli : notificación simulada\n(email / SMS / app)
 N -> Q : ack
 @enduml
 ```
@@ -261,7 +265,8 @@ N -> Q : ack
 | **RF-04** | El microservicio de recompensas debe consumir el evento y calcular puntos y cashback automáticamente. |
 | **RF-05** | El sistema debe acumular y persistir las recompensas en la cuenta del cliente. |
 | **RF-06** | El sistema debe permitir consultar el saldo de recompensas de un cliente. |
-| **RF-07** | *(Opcional)* El sistema debe emitir una notificación cuando la recompensa es mayor que cero. |
+| **RF-07** | El sistema debe gestionar el catálogo de restaurantes afiliados (código, categoría, estado activo) en SQLite. |
+| **RF-08** | El sistema debe publicar un evento `recompensa.procesada` y un Notifier debe simular el envío de la notificación cuando la recompensa es mayor que cero. |
 
 ---
 
@@ -279,7 +284,11 @@ N -> Q : ack
 
 ---
 
-## 7. Modelo del evento (contrato)
+## 7. Modelos de datos
+
+### 7.1 Eventos (contratos de mensajería)
+
+**`cena.registrada`** — publicado por el Restaurant Service:
 
 ```json
 {
@@ -296,6 +305,39 @@ N -> Q : ack
 | `card_number` | string | 13–19 dígitos |
 | `restaurant_code` | string | restaurante afiliado activo |
 | `timestamp` | string ISO-8601 | fecha/hora de la transacción |
+
+**`recompensa.procesada`** — publicado por el Rewards Service (solo si recompensa > 0):
+
+```json
+{
+  "card_number": "4111111111111111",
+  "points": 25,
+  "cashback": 12.5,
+  "restaurant_code": "REST-001",
+  "timestamp": "2026-05-30T20:15:01Z"
+}
+```
+
+### 7.2 Esquema SQLite (Rewards Service)
+
+```sql
+-- Restaurantes afiliados (catálogo, RN-04)
+CREATE TABLE restaurants (
+    code      TEXT PRIMARY KEY,         -- p.ej. "REST-001"
+    name      TEXT NOT NULL,
+    category  TEXT NOT NULL,            -- 'premium' | 'estandar'
+    active    INTEGER NOT NULL DEFAULT 1
+);
+
+-- Cuentas de recompensas por cliente (RN-06)
+CREATE TABLE accounts (
+    card_number     TEXT PRIMARY KEY,   -- identificador del cliente
+    total_points    INTEGER NOT NULL DEFAULT 0,
+    total_cashback  REAL    NOT NULL DEFAULT 0.0
+);
+```
+
+> El catálogo `restaurants` se siembra (seed) al iniciar el servicio con un conjunto inicial de restaurantes afiliados. La categoría determina el porcentaje de cashback (RN-02).
 
 ---
 
@@ -314,6 +356,6 @@ N -> Q : ack
 ## 9. Decisiones de diseño
 
 1. **RabbitMQ con exchange `direct`** en lugar del default exchange: cumple el patrón Exchange→Routes→Queue del enunciado y desacopla al productor de la cola.
-2. **SQLite tras una interfaz `AccountRepository`**: permite sustituir la persistencia por una implementación in-memory en las pruebas, mejorando la testabilidad y el desacoplamiento.
+2. **SQLite tras interfaces `AccountRepository` y `RestaurantRepository`**: permite sustituir la persistencia por implementaciones in-memory en las pruebas, mejorando la testabilidad y el desacoplamiento. El catálogo de restaurantes y las cuentas viven en SQLite.
 3. **Módulo `shared` mínimo**: solo contiene el contrato del evento y su (de)serialización, evitando duplicación entre servicios sin acoplar sus dominios.
 4. **FastAPI en el productor**: expone la API REST de registro de cenas con validación declarativa (Pydantic) y documentación automática.
