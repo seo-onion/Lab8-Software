@@ -33,11 +33,7 @@ def create_app(register_dinner: RegisterDinner) -> FastAPI:
     """Build the FastAPI app wired to the given use case (enables testing)."""
     app = FastAPI(title="Restaurant Service", version="1.0.0")
 
-    @app.post(
-        "/dinners",
-        status_code=status.HTTP_202_ACCEPTED,
-        response_model=DinnerResponse,
-    )
+    @app.post("/dinners", status_code=status.HTTP_202_ACCEPTED)
     def register(request: DinnerRequest) -> DinnerResponse:
         command = RegisterDinnerCommand(
             amount=request.amount,

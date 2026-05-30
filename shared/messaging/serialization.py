@@ -7,16 +7,13 @@ producer and consumer (Duplications quality gate).
 from __future__ import annotations
 
 import json
-from typing import Any, Protocol, TypeVar
+from typing import Any, Protocol
 
 
 class _Event(Protocol):
     """Minimal contract a serializable event must satisfy."""
 
     def to_dict(self) -> dict[str, Any]: ...
-
-
-T = TypeVar("T")
 
 
 class SerializationError(ValueError):
@@ -28,7 +25,7 @@ def serialize(event: _Event) -> bytes:
     return json.dumps(event.to_dict()).encode("utf-8")
 
 
-def deserialize(payload: bytes, factory: type[T]) -> T:
+def deserialize[T](payload: bytes, factory: type[T]) -> T:
     """Decode JSON bytes into an event using ``factory.from_dict``.
 
     Raises:

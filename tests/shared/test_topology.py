@@ -32,7 +32,7 @@ def test_broker_settings_use_defaults_when_env_absent(monkeypatch):
 
     settings = BrokerSettings.from_env()
 
-    assert settings.host == "213.199.42.57"
+    assert settings.host == "localhost"
     assert settings.port == 5672
     assert settings.user == "students"
     assert settings.password == ""

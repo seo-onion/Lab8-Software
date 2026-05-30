@@ -1,7 +1,12 @@
 [run]
+relative_files = True
+source = .
 omit =
     */main.py
     */__init__.py
+    tests/**
+    .venv/**
+    utils/**
 
 [report]
 exclude_lines =

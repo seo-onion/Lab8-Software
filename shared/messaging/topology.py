@@ -1,7 +1,7 @@
 """AMQP topology and broker connection settings.
 
-Names are unique per team because the course RabbitMQ server (213.199.42.57) is
-shared by all students. Credentials are read from environment variables, never
+Names are unique per team because the course RabbitMQ server is shared by all
+students. The host and credentials are read from environment variables, never
 hardcoded (Security quality gate, RNF-04).
 """
 
@@ -34,7 +34,7 @@ class BrokerSettings:
     @classmethod
     def from_env(cls) -> "BrokerSettings":
         return cls(
-            host=os.getenv("RABBITMQ_HOST", "213.199.42.57"),
+            host=os.getenv("RABBITMQ_HOST", "localhost"),
             port=int(os.getenv("RABBITMQ_PORT", "5672")),
             user=os.getenv("RABBITMQ_USER", "students"),
             password=os.getenv("RABBITMQ_PASSWORD", ""),

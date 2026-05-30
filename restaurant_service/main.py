@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import os
 
 from dotenv import load_dotenv
 
@@ -23,7 +24,9 @@ app = create_app(RegisterDinner(publisher))
 def main() -> None:
     import uvicorn
 
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    host = os.getenv("APP_HOST", "localhost")
+    port = int(os.getenv("APP_PORT", "8000"))
+    uvicorn.run(app, host=host, port=port)
 
 
 if __name__ == "__main__":

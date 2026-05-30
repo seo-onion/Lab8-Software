@@ -35,8 +35,20 @@ Restaurant Service (FastAPI) --publish--> [Exchange -> Queue] --consume--> Rewar
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
-cp .env.example .env   # completar credenciales
 ```
+
+## Variables de entorno
+
+Configúralas en un archivo `.env` (ignorado por git):
+
+| Variable | Descripción | Ejemplo |
+|----------|-------------|---------|
+| `RABBITMQ_HOST` | Host del broker | `213.199.42.57` |
+| `RABBITMQ_PORT` | Puerto AMQP | `5672` |
+| `RABBITMQ_USER` | Usuario | `students` |
+| `RABBITMQ_PASSWORD` | Contraseña | *(provista por el curso)* |
+| `RABBITMQ_VHOST` | Virtual host | `/` |
+| `REWARDS_DB_PATH` | Ruta de la BD SQLite | `rewards.db` |
 
 ## Pruebas y cobertura
 
@@ -46,6 +58,17 @@ pytest                 # corre tests y genera coverage.xml (objetivo >= 85%)
 
 ## Análisis de calidad (SonarQube)
 
+El token **no** se versiona; se pasa por la variable de entorno `SONAR_TOKEN`,
+que `sonar-scanner` lee de forma automática:
+
 ```bash
-sonar-scanner          # usa sonar-project.properties
+pytest                                   # 1. genera coverage.xml
+export SONAR_TOKEN=sqa_xxxxxxxxxxxxxxxx   # 2. token de SonarQube
+sonar-scanner                            # 3. analiza y sube al servidor
+```
+
+Como atajo, el token puede guardarse en un `.env.sonar` (ignorado por git):
+
+```bash
+set -a && source .env.sonar && set +a && sonar-scanner
 ```
